@@ -1,128 +1,159 @@
-#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 
-#define A 0
-#define B 1
-#define C 2
-#define D 3
-#define E 4
-#define F 5
-#define H 6
-/*
-A = 0
-B = 1
-C = 2
-D = 3
-E = 4
-F = 5
-H = 6
-*/
+#define INFINITY 2147483647
 
-typedef struct vertice Vertice;
-struct vertice {
-  int vertice;
-  int peso;
-  Vertice *prox;
+typedef struct adjList AdjList;
+struct adjList{
+    int node;
+    int weight;
+    AdjList* prox;
 };
-
-typedef struct grafo Grafo;
-struct grafo {
-  int num_vertices;
-  Vertice **vetor_lista;
+typedef struct graph Graph;
+struct graph{
+    int qtdNodes;
+    AdjList** adj;
 };
-
-Grafo *startGraph(int numVertices);
-void insereGraph(Grafo *graph, int ori, int dest, int weight);
-void printaGraph(Grafo *graph, int size);
-void busca_dfs(Grafo *grafo);
-void busca_dfs_auxiliar(Vertice **vetor_listas, bool *vetor_visitados, int vertice_inicial);
-
-int main(void) {
-    Grafo *graph = startGraph(7);
-    int ori[] = {0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 4, 5, 5, 5, 6, 6, 6};
-    int dest[] = {1, 2, 3, 0, 2, 4, 6, 0, 1, 3, 4, 0, 2, 4, 5, 1, 2, 3, 5, 6, 3, 4, 6, 1, 4, 5};
-    int weight[] = {5, 4, 2, 5, 6, 6, 9, 4, 6, 3, 4, 2, 3, 5, 9, 6, 4, 5, 2, 6, 9, 2, 3, 9, 6, 3};
-    int size = sizeof(ori) / sizeof(ori[1]);
-    for (int i = 0; i < size; i++) {
-        insereGraph(graph, ori[i], dest[i], weight[i]);
-    }
-    printf("Grafo em lista de adjacências:\n");
-    printaGraph(graph, 7);
-    
-    printf("\nBusca em profundidade partindo do vértice A\n");
-    busca_dfs(graph);
-    
-    
-    return 0;
-}
-
-// Função para imprimir o grafo
-void printaGraph(Grafo *graph, int tam) {
-    for (int i = 0; i < tam; i++) {
-        printf("%c-> ", 65 + (i == 6 ? 7 : i));
-        Vertice *line = *((graph->vetor_lista) + i);
-        while (line) {
-            printf("(%c, %d)", 65 + (line->vertice == 6 ? 7 : line->vertice), line->peso);
-            line = line->prox;
-            if (line)
-                printf("-");
-            }
-        printf("\n");
-    }
-}
+typedef struct pilha Pilha;
+struct pilha{
+    int elem;
+    Pilha* prox;
+};
 
 // Função para inicializar o grafo
-Grafo *startGraph(int numVertices) {
-  Grafo *graph = (Grafo *)malloc(sizeof(Grafo));
-  if (!graph)
-    exit(1);
-  graph->num_vertices = numVertices;
-  graph->vetor_lista = (Vertice **)malloc(sizeof(Vertice *) * numVertices);
-  if (!graph->vetor_lista)
-    exit(1);
-  return graph;
-}
-
-// Função para inserir a aresta no grafo
-void insereGraph(Grafo *graph, int ori, int dest, int weight) {
-  Vertice **lista = graph->vetor_lista;
-  if (!lista || !lista[ori]) {
-    lista[ori] = (Vertice *)malloc(sizeof(Vertice));
-    if (!lista[ori])
-      exit(1);
-    lista[ori]->peso = weight;
-    lista[ori]->vertice = dest;
-    lista[ori]->prox = NULL;
-    return;
-  }
-  Vertice *aux = lista[ori];
-  while (aux->prox != NULL) {
-    aux = aux->prox;
-  }
-  aux->prox = malloc(sizeof(Vertice));
-  aux->prox->vertice = dest;
-  aux->prox->peso = weight;
-  aux->prox->prox = NULL;
-  return;
-}
-
-void busca_dfs(Grafo *grafo) {
-    bool vetor_visitados[grafo->num_vertices];
-    for (int i = 0; i < grafo->num_vertices; i++) {
-        vetor_visitados[i] = false;
+Graph* makeGraph(){
+    Graph* graph = (Graph*)malloc(sizeof(Graph));
+    if (!graph){
+        printf("ERROR: Falta de memória\n");
+        exit(1);
     }
-    busca_dfs_auxiliar(grafo->vetor_lista, vetor_visitados, A);
+    AdjList** adj = (AdjList**)malloc(7*sizeof(AdjList*));
+    if (!adj){
+        printf("ERROR: Falta de memória\n");
+        exit(1);
+    }
+    int arestaPeso[7][7] = {
+        {0,5,4,2,0,0,0},
+        {5,0,6,0,6,0,9},
+        {4,6,0,3,4,0,0},
+        {2,0,3,0,5,9,0},
+        {0,6,4,5,0,2,6},
+        {0,0,0,9,2,0,3},
+        {0,9,0,0,6,3,0}
+    };
+    for (int i = 0; i<7; i++){
+        *(adj+i) = (AdjList*)malloc(sizeof(AdjList));
+        if (!(*(adj+i))){
+            printf("ERROR: Falta de memória\n");
+            exit(1);
+        }
+        AdjList* atual = *(adj+i);
+        AdjList* ant = atual;
+        for (int j = 0; j<7; j++){
+            if (arestaPeso[i][j] != 0){
+                atual->node = j;
+                atual->weight = arestaPeso[i][j];
+                ant = atual;
+                atual->prox = (AdjList*)malloc(sizeof(AdjList));
+                if (!(atual->prox)){
+                    printf("ERROR: Falta de memória\n");
+                    exit(1);
+                }
+                atual = atual->prox;
+            }
+        }
+        free(atual);
+        ant->prox = NULL;
+    }
+    graph->qtdNodes = 7;
+    graph->adj = adj;
+    return graph;
 }
 
-void busca_dfs_auxiliar(Vertice **vetor_listas, bool *vetor_visitados, int vertice_inicial) {
-    printf("dfs(%c)\n", 65 + (vertice_inicial == 6 ? 7 : vertice_inicial));
-    vetor_visitados[vertice_inicial] = true;
-    Vertice* vertice_atual = vetor_listas[vertice_inicial];
-    while (vertice_atual){
-        if (vertice_atual->prox && vetor_visitados[vertice_atual->prox->vertice] == false){
-            busca_dfs_auxiliar(vetor_listas, vetor_visitados, vertice_atual->prox->vertice);
+// Função que realiza o cálculo das distâncias, usando o Algoritmo de Djikstra
+int* djikstra(Graph* graph, int initialNode){
+    int* dist = (int*)malloc(sizeof(int)*(graph->qtdNodes));
+    if (!dist){
+        printf("ERROR: Falta de memória\n");
+        exit(1);
+    }
+    int visitados[graph->qtdNodes];
+    for(int i=0; i<graph->qtdNodes;i++){
+        *(dist+i) = INFINITY;
+        visitados[i] = 0;
+    }
+    *(dist+initialNode) = 0;
+    int qtdVisitas = 0;
+    int actualNode = initialNode;
+    while(qtdVisitas < graph->qtdNodes){
+        qtdVisitas++;
+        visitados[actualNode] = 1;
+        AdjList* actual = *((graph->adj)+actualNode);
+        while (actual){
+            *(dist+actual->node) = (actual->weight + *(dist+actualNode) < *(dist+actual->node) ? actual->weight + *(dist+actualNode) : *(dist+actual->node));
+            actual = actual->prox;
         }
-        vertice_atual = vertice_atual->prox;
-    }    
+        int menorDist = INFINITY;
+        for (int i=0; i<graph->qtdNodes; i++){
+            if (!visitados[i] && *(dist+i) <= menorDist){
+                menorDist = *(dist+i);
+                actualNode = i;
+            }
+        }
+    }
+    return dist;
+}
+
+// Função para realizar a busca em profundidade
+void dfs(Graph* graph, Pilha* pilha, int* visitados){
+    if (!pilha){
+        printf("\n");
+        return;
+    }
+    printf("%c ", pilha->elem == 6 ? pilha->elem+1+65 : pilha->elem+65);
+    Pilha* newPile = (Pilha*)malloc(sizeof(Pilha));
+    if (!newPile){
+        printf("ERROR: Falta de memória\n");
+        exit(1);
+    }
+    newPile->prox = pilha->prox;
+    AdjList* adj = *((graph->adj)+pilha->elem);
+    free(pilha);
+    while(adj){
+        if (!(*(visitados+adj->node))){
+            *(visitados+adj->node) = 1;
+            newPile->elem = adj->node;
+            Pilha* newNewPile = (Pilha*)malloc(sizeof(Pilha));
+            if (!newNewPile){
+                printf("ERROR: Falta de memória\n");
+                exit(1);
+            }   
+            newNewPile->prox = newPile;
+            newPile = newNewPile;
+        }
+        adj = adj->prox;
+    }
+    pilha = newPile->prox;
+    free(newPile);
+    return dfs(graph,pilha,visitados);
+}
+
+int main(void){
+    Graph* graph = makeGraph();
+    int* dist = djikstra(graph, 0);
+    printf("Resultado das distâncias calculadas usando djikstra:\n");
+    for (int i=0; i<graph->qtdNodes;i++){
+        printf("dist(%c,%c)=%d\n",65,65+(i == 6 ? i+1 : i),*(dist+i));
+    }
+    printf("Dfs do grafo:\n");
+    Pilha* pilha = (Pilha*)malloc(sizeof(Pilha));
+    if (!pilha){
+        printf("ERROR: Falta de memoria");
+        exit(1);
+    }
+    pilha->elem = 0;
+    pilha->prox = NULL;
+    int visitados[7] = {1,0,0,0,0,0,0};
+    dfs(graph,pilha,visitados);
+    return 0;
 }
