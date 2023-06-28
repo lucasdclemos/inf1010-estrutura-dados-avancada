@@ -1,3 +1,6 @@
+//Nome: Jayme Augusto Avelino de Paiva; matrícula: 2210289
+//Nome: Lucas Demarco Cambraia Lemos; matrícula: 2110013
+
 #include <stdio.h>
 #include <stdlib.h>
 
